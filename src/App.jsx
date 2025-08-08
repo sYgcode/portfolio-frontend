@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import Header from './components/Header/Header.jsx'
+import Header from './components/Header/Header'
 import Home from './pages/Home'
 import Gallery from './pages/Gallery'
 import Albums from './pages/Albums'
