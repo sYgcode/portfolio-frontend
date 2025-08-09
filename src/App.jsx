@@ -15,6 +15,7 @@ import NotFound from './pages/NotFound'
 import AuthApi from './services/authApi'
 import PhotosApi from './services/photosApi'
 import AlbumsApi from './services/albumsApi'
+import UserApi from './services/userApi'
 import AddPhoto from './pages/admin/AddPhoto'
 import AddAlbum from './pages/admin/AddAlbum'
 import AddProduct from './pages/admin/AddProduct'
@@ -29,6 +30,7 @@ function AppContent() {
   const authApi = new AuthApi()
   const photosApi = new PhotosApi()
   const albumsApi = new AlbumsApi()
+  const userApi = new UserApi()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -84,12 +86,12 @@ function AppContent() {
       
       <main className="pt-16 w-full min-h-[calc(100vh-4rem)]">
         <Routes>
-          <Route path="/" element={<Home photosApi={photosApi} albumsApi={albumsApi} onPhotoClick={(id) => navigate(`/photo/${id}`)}/>} />
+          <Route path="/" element={<Home photosApi={photosApi} albumsApi={albumsApi} userApi={userApi} isAuthenticated={isAuthenticated} onPhotoClick={(id) => navigate(`/photo/${id}`)}/>} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           
           {/* Photo Routes */}
           <Route path="/gallery" element={<Gallery photosApi={photosApi}/>} />
-          <Route path="/photo/:id" element={<Photo photosApi={photosApi} userRole={user?.role}/>} />
+          <Route path="/photo/:id" element={<Photo photosApi={photosApi} userRole={user?.role} userApi={userApi} isAuthenticated={isAuthenticated}/>} />
           
           {/* Album Routes */}
           <Route path="/albums" element={<Albums albumsApi={albumsApi}/>} />
@@ -123,7 +125,7 @@ function AppContent() {
                 userRole={user?.role} 
                 requiredRole="user"
               >
-                <User user={user} />
+                <User user={user} userApi={userApi} />
               </ProtectedRoute>
             } 
           />

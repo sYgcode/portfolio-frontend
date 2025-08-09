@@ -27,7 +27,6 @@ const Gallery = ({ photosApi }) => {
       console.log('API Response:', response); // Debug log
       
       setPhotos(response.photos || []);
-      // FIX: Use the correct pagination data structure
       setTotalPages(response.totalPages || 1);
       setCurrentPage(page);
     } catch (err) {
@@ -122,30 +121,13 @@ const Gallery = ({ photosApi }) => {
           Photos: {photos.length} | Current Page: {currentPage} | Total Pages: {totalPages}
         </div>
 
-        {/* Gallery Grid */}
+        {/* Gallery Grid - FIXED */}
         {photos.length > 0 ? (
           <>
-            {/* Dynamic grid that centers items */}
-            <div className={`grid gap-6 ${
-              photos.length === 1 ? 'grid-cols-1 max-w-md mx-auto' :
-              photos.length === 2 ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto' :
-              photos.length === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto' :
-              photos.length <= 8 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' :
-              'columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6'
-            }`}>
-              {photos.length <= 8 ? (
-                // Use regular grid for 8 or fewer items (centers nicely)
-                photos.map((photo) => (
-                  <PhotoCard key={photo._id} photo={photo} />
-                ))
-              ) : (
-                // Use masonry columns for more than 8 items
-                photos.map((photo) => (
-                  <div key={photo._id} className="break-inside-avoid">
-                    <PhotoCard photo={photo} />
-                  </div>
-                ))
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+              {photos.map((photo) => (
+                <PhotoCard key={photo._id} photo={photo} />
+              ))}
             </div>
 
             {/* Pagination */}

@@ -53,6 +53,62 @@ const FeaturedPhotoCard = ({ photo, onPhotoClick = () => {} }) => {
   );
 };
 
+// Favorite Photo Card Component - slightly different styling
+const FavoritePhotoCard = ({ photo, onPhotoClick = () => {} }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div 
+      className="relative flex-shrink-0 w-80 group cursor-pointer transition-all duration-500 ease-out transform hover:scale-105 hover:z-10 mr-6"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onPhotoClick(photo._id)}
+    >
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 shadow-lg hover:shadow-2xl transition-shadow duration-300">
+        <img
+          src={photo.thumbnailUrl || photo.imageUrl}
+          alt={photo.title}
+          className={`w-full h-48 object-cover transition-all duration-500 ${
+            imageLoaded ? 'opacity-100' : 'opacity-0'
+          } ${isHovered ? 'scale-110' : 'scale-100'}`}
+          onLoad={() => setImageLoaded(true)}
+        />
+        
+        {/* Loading placeholder */}
+        {!imageLoaded && (
+          <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 via-orange-50 to-red-100 animate-pulse" />
+        )}
+        
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        
+        {/* Favorite badge */}
+        <div className="absolute top-3 left-3">
+          <div className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full text-white text-xs font-medium shadow-lg backdrop-blur-sm flex items-center">
+            <svg className="w-3 h-3 mr-1 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            Favorite
+          </div>
+        </div>
+        
+        {/* Title and photographer always visible at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 p-4">
+          <h3 className="text-white text-lg font-medium tracking-wide mb-1 drop-shadow-lg line-clamp-2">
+            {photo.title}
+          </h3>
+          {(photo.photographer || photo.metadata?.photographer) && (
+            <p className="text-white/80 text-sm drop-shadow-md">
+              by {photo.photographer || photo.metadata?.photographer}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Featured Album Card Component
 const FeaturedAlbumCard = ({ album, onAlbumClick = () => {} }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -211,6 +267,12 @@ const FeaturedCarousel = ({ items, onItemClick, type = "photos" }) => {
                 photo={item} 
                 onPhotoClick={onItemClick}
               />
+            ) : type === "favorites" ? (
+              <FavoritePhotoCard 
+                key={item._id} 
+                photo={item} 
+                onPhotoClick={onItemClick}
+              />
             ) : (
               <FeaturedAlbumCard 
                 key={item._id} 
@@ -268,13 +330,16 @@ const FeaturedSection = ({ title, children, viewAllLink, viewAllText = "View All
 );
 
 // Main Home component
-const Home = ({ photosApi, albumsApi, onPhotoClick = (id) => { window.location.href = `/photo/${id}` }, onAlbumClick = (id) => { window.location.href = `/album/${id}` } }) => {
+const Home = ({ photosApi, albumsApi, userApi, isAuthenticated, onPhotoClick = (id) => { window.location.href = `/photo/${id}` }, onAlbumClick = (id) => { window.location.href = `/album/${id}` } }) => {
   const [featuredPhotos, setFeaturedPhotos] = useState([]);
   const [featuredAlbums, setFeaturedAlbums] = useState([]);
+  const [favoritePhotos, setFavoritePhotos] = useState([]);
   const [photosLoading, setPhotosLoading] = useState(true);
   const [albumsLoading, setAlbumsLoading] = useState(true);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [photosError, setPhotosError] = useState(null);
   const [albumsError, setAlbumsError] = useState(null);
+  const [favoritesError, setFavoritesError] = useState(null);
 
   useEffect(() => {
     const fetchFeaturedPhotos = async () => {
@@ -325,6 +390,26 @@ const Home = ({ photosApi, albumsApi, onPhotoClick = (id) => { window.location.h
       }
     };
 
+    const fetchFavoritePhotos = async () => {
+      if (!isAuthenticated || !userApi) return;
+
+      try {
+        setFavoritesLoading(true);
+        setFavoritesError(null);
+        
+        const data = await userApi.getFavorites('photo');
+        
+        // Extract the favorites array from the response
+        const photosArray = data.favorites || data || [];
+        setFavoritePhotos(photosArray);
+      } catch (err) {
+        console.error('Error fetching favorite photos:', err);
+        setFavoritesError(`Favorites unavailable: ${err.message}`);
+      } finally {
+        setFavoritesLoading(false);
+      }
+    };
+
     if (photosApi) {
       fetchFeaturedPhotos();
     }
@@ -332,9 +417,13 @@ const Home = ({ photosApi, albumsApi, onPhotoClick = (id) => { window.location.h
     if (albumsApi) {
       fetchFeaturedAlbums();
     }
-  }, [photosApi, albumsApi]);
 
-  const isLoading = photosLoading || albumsLoading;
+    if (isAuthenticated && userApi) {
+      fetchFavoritePhotos();
+    }
+  }, [photosApi, albumsApi, userApi, isAuthenticated]);
+
+  const isLoading = photosLoading || albumsLoading || favoritesLoading;
 
   if (isLoading) {
     return (
@@ -392,6 +481,27 @@ const Home = ({ photosApi, albumsApi, onPhotoClick = (id) => { window.location.h
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-16">
+        {/* My Favorites Section - Only show if user is authenticated and has favorites */}
+        {isAuthenticated && favoritePhotos.length > 0 && (
+          <FeaturedSection 
+            title="My Favorites" 
+            viewAllLink="/user"
+            viewAllText="View All Favorites"
+          >
+            {favoritesError ? (
+              <div className="text-center py-16">
+                <p className="text-red-500">Error loading favorites: {favoritesError}</p>
+              </div>
+            ) : (
+              <FeaturedCarousel 
+                items={favoritePhotos} 
+                onItemClick={onPhotoClick}
+                type="favorites"
+              />
+            )}
+          </FeaturedSection>
+        )}
+
         {/* Featured Photos Section */}
         <FeaturedSection 
           title="Featured Photos" 

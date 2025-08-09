@@ -9,50 +9,65 @@ const FileUpload = ({ selectedFile, onFileSelect, onRemoveFile, compressionProgr
 
   // Enhanced image compression with better quality settings
   const compressImage = (file, quality = 0.92, maxWidth = 2560, maxHeight = 1920) => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      let { width, height } = img;
+      const originalWidth = width;
+      const originalHeight = height;
       
-      img.onload = () => {
-        // Calculate new dimensions maintaining aspect ratio
-        let { width, height } = img;
-        const originalWidth = width;
-        const originalHeight = height;
-        
-        // Only compress if image is larger than max dimensions
-        if (width > maxWidth || height > maxHeight) {
-          const ratio = Math.min(maxWidth / width, maxHeight / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
+      // Only compress if image is larger than max dimensions
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      canvas.toBlob((blob) => {
+        if (!blob || blob.size === 0) {
+          // If compression failed, return original file
+          console.warn('Compression failed, using original file');
+          resolve(file);
+          return;
         }
         
-        canvas.width = width;
-        canvas.height = height;
+        const compressionRatio = blob.size / file.size;
+        setCompressionInfo({
+          originalSize: file.size,
+          compressedSize: blob.size,
+          compressionRatio: compressionRatio,
+          originalDimensions: `${originalWidth} × ${originalHeight}`,
+          newDimensions: `${width} × ${height}`
+        });
         
-        // Use better image rendering
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        // Create proper File object
+        const compressedFile = new File([blob], file.name, {
+          type: 'image/jpeg',
+          lastModified: Date.now()
+        });
         
-        // Draw and compress
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob((blob) => {
-          const compressionRatio = blob.size / file.size;
-          setCompressionInfo({
-            originalSize: file.size,
-            compressedSize: blob.size,
-            compressionRatio: compressionRatio,
-            originalDimensions: `${originalWidth} × ${originalHeight}`,
-            newDimensions: `${width} × ${height}`
-          });
-          resolve(blob);
-        }, 'image/jpeg', quality);
-      };
-      
-      img.src = URL.createObjectURL(file);
-    });
-  };
+        resolve(compressedFile);
+      }, 'image/jpeg', quality);
+    };
+    
+    img.onerror = (error) => {
+      console.error('Image load error:', error);
+      resolve(file); // Fallback to original
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
+};
 
   // Extract EXIF data from image
   const extractImageMetadata = async (file) => {
@@ -76,76 +91,77 @@ const FileUpload = ({ selectedFile, onFileSelect, onRemoveFile, compressionProgr
   };
 
   const handleFileSelect = async (file) => {
-    if (!file || !file.type.startsWith('image/')) {
-      alert('Please select a valid image file');
-      return;
-    }
+  if (!file || !file.type.startsWith('image/')) {
+    alert('Please select a valid image file');
+    return;
+  }
 
-    if (file.size > 50 * 1024 * 1024) { // 50MB limit
-      alert('File too large. Maximum size is 50MB.');
-      return;
-    }
+  if (file.size === 0) {
+    alert('File appears to be empty. Please try another file.');
+    return;
+  }
 
-    // Create preview
-    const preview = URL.createObjectURL(file);
-    setPreviewUrl(preview);
+  if (file.size > 50 * 1024 * 1024) {
+    alert('File too large. Maximum size is 50MB.');
+    return;
+  }
+
+  // Create preview
+  const preview = URL.createObjectURL(file);
+  setPreviewUrl(preview);
+  
+  try {
+    // Extract metadata
+    const metadata = await extractImageMetadata(file);
     
-    try {
-      // Extract metadata
-      const metadata = await extractImageMetadata(file);
+    let processedFile = file;
+    
+    // Only compress large files (and verify compression worked)
+    if (file.size > 2 * 1024 * 1024 || metadata.originalWidth > 2560 || metadata.originalHeight > 1920) {
+      const compressedFile = await compressImage(file, 0.92, 2560, 1920);
       
-      // Only compress if image is large (over 2MB or large dimensions)
-      let processedFile = file;
-      if (file.size > 2 * 1024 * 1024 || metadata.originalWidth > 2560 || metadata.originalHeight > 1920) {
-        // Compress image with high quality
-        const compressedBlob = await compressImage(file, 0.92, 2560, 1920);
-        
-        // Create new file object with compressed data
-        processedFile = new File([compressedBlob], file.name, {
-          type: 'image/jpeg',
-          lastModified: Date.now()
-        });
+      // Verify compression didn't break the file
+      if (compressedFile && compressedFile.size > 0) {
+        processedFile = compressedFile;
       } else {
-        // Keep original file if it's already small enough
-        setCompressionInfo({
-          originalSize: file.size,
-          compressedSize: file.size,
-          compressionRatio: 1,
-          originalDimensions: `${metadata.originalWidth} × ${metadata.originalHeight}`,
-          newDimensions: `${metadata.originalWidth} × ${metadata.originalHeight}`,
-          noCompressionNeeded: true
-        });
+        console.warn('Compression failed, using original file');
+        processedFile = file;
       }
-      
-      // Pass file data with metadata to parent
-      onFileSelect({
-        file: processedFile,
-        originalFile: file,
-        originalWidth: metadata.originalWidth,
-        originalHeight: metadata.originalHeight,
-        format: metadata.format,
-        originalSizeKB: metadata.originalSizeKB,
-        sizeKB: processedFile.size / 1024,
-        dateTaken: metadata.dateTaken,
-        preview
-      });
-    } catch (error) {
-      console.error('Processing failed:', error);
-      // Fallback to original file
-      const metadata = await extractImageMetadata(file);
-      onFileSelect({
-        file,
-        originalFile: file,
-        originalWidth: metadata.originalWidth,
-        originalHeight: metadata.originalHeight,
-        format: metadata.format,
-        originalSizeKB: metadata.originalSizeKB,
-        sizeKB: file.size / 1024,
-        dateTaken: metadata.dateTaken,
-        preview
-      });
     }
-  };
+    
+    // Final validation
+    if (processedFile.size === 0) {
+      throw new Error('Processed file is empty');
+    }
+    
+    onFileSelect({
+      file: processedFile,
+      originalFile: file,
+      originalWidth: metadata.originalWidth,
+      originalHeight: metadata.originalHeight,
+      format: metadata.format,
+      originalSizeKB: metadata.originalSizeKB,
+      sizeKB: processedFile.size / 1024,
+      dateTaken: metadata.dateTaken,
+      preview
+    });
+  } catch (error) {
+    console.error('Processing failed:', error);
+    // Always fallback to original file
+    const metadata = await extractImageMetadata(file);
+    onFileSelect({
+      file,
+      originalFile: file,
+      originalWidth: metadata.originalWidth,
+      originalHeight: metadata.originalHeight,
+      format: metadata.format,
+      originalSizeKB: metadata.originalSizeKB,
+      sizeKB: file.size / 1024,
+      dateTaken: metadata.dateTaken,
+      preview
+    });
+  }
+};
 
   const handleDragOver = (e) => {
     e.preventDefault();
