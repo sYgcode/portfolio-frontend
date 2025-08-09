@@ -204,7 +204,7 @@ export default function Photo({ photosApi, userRole, userApi, isAuthenticated })
                                     className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center transition-colors duration-200"
                                 >
                                     <Mail className="h-3 w-3 mr-1" />
-                                    watermark-free?
+                                    watermark-free and in full resolution?
                                 </button>
                             </div>
 
