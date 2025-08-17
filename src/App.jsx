@@ -5,7 +5,6 @@ import Home from './pages/Home'
 import Gallery from './pages/Gallery'
 import Albums from './pages/Albums'
 import Album from './pages/albums/Album'
-import Shop from './pages/Shop'
 import ContactUs from './pages/ContactUs'
 import User from './pages/User'
 import AdminPanel from './pages/AdminPanel'
@@ -97,7 +96,6 @@ function AppContent() {
           <Route path="/albums" element={<Albums albumsApi={albumsApi}/>} />
           <Route path="/album/:id" element={<Album albumsApi={albumsApi} photosApi={photosApi} userRole={user?.role}/>} />
           
-          <Route path="/shop" element={<Shop />} />
           <Route path="/contact-us" element={<ContactUs />} />
           
           <Route 
