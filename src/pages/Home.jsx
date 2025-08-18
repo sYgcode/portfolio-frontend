@@ -74,7 +74,7 @@ const Home = ({ photosApi, albumsApi, userApi, isAuthenticated, onPhotoClick = (
         setFavoritesError(null);
         
         const data = await userApi.getFavorites('photo');
-        setFavoritePhotos(data || []);
+        setFavoritePhotos(data.favorites || []);
       } catch (err) {
         console.error('Error fetching favorite photos:', err);
         setFavoritesError(`Favorites unavailable: ${err.message}`);
@@ -101,6 +101,7 @@ const Home = ({ photosApi, albumsApi, userApi, isAuthenticated, onPhotoClick = (
   if (isLoading) {
     return <LoadingSection />;
   }
+  console.log('Favorite Photos:', favoritePhotos);
 
   return (
     <div className="min-h-screen bg-white">

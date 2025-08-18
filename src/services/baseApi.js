@@ -195,7 +195,11 @@ export class BaseApi {
 
         } catch (error) {
             console.error(`Error creating ${this.resourceName}:`, error);
-            throw error;
+            if (error instanceof TypeError || error.message.includes('Failed to fetch')) {
+                throw new Error(`Network error detected. Your ${this.resourceName} may have been created, but the server did not respond correctly. PLease check your gallery before trying again.`);
+            } else {
+                throw error;
+            }
         }
     }
 
@@ -237,7 +241,11 @@ export class BaseApi {
 
         } catch (error) {
             console.error(`Error updating ${this.resourceName}:`, error);
-            throw error;
+            if (error instanceof TypeError || error.message.includes('Failed to fetch')) {
+                throw new Error(`Network error detected. Your ${this.resourceName} may have been updated, but the server did not respond correctly. PLease check your gallery before trying again.`);
+            } else {
+                throw error;
+            }
         }
     }
 
@@ -263,7 +271,11 @@ export class BaseApi {
 
         } catch (error) {
             console.error(`Error deleting ${this.resourceName}:`, error);
-            throw error;
+            if (error instanceof TypeError || error.message.includes('Failed to fetch')) {
+                throw new Error(`Network error detected. Your ${this.resourceName} may have been deleted, but the server did not respond correctly. PLease check your gallery before trying again.`);
+            } else {
+                throw error;
+            }
         }
     }
 

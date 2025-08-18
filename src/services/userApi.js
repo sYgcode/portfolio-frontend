@@ -64,6 +64,9 @@ export default class UserApi {
             return data;
         } catch (error) {
             console.error('Update profile picture error:', error);
+            if (error instanceof TypeError || error.message.includes('Failed to fetch')) {
+                throw new Error(`Network error detected. Your profile picture may have been updated, but the server did not respond correctly. Please try again.`);
+            }
             throw error;
         }
     }

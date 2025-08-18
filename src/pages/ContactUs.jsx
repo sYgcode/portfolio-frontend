@@ -15,9 +15,9 @@ const ContactUs = () => {
 
   // EmailJS configuration - these are safe to expose in frontend
   const EMAILJS_CONFIG = {
-    serviceId: 'service_2ad08ks',     // Replace with your service ID
-    templateId: 'template_4xccb5g',   // Replace with your template ID  
-    publicKey: '3C0jmCf2LCrxJ0D1o'      // Replace with your public key
+    serviceId: 'service_2ad08ks',     
+    templateId: 'template_4xccb5g',    
+    publicKey: '3C0jmCf2LCrxJ0D1o' 
   };
 
   // Rate limiting: 1 email per minute per user

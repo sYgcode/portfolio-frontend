@@ -32,6 +32,9 @@ export default class AuthApi {
 
         } catch (error) {
             console.error('Login error:', error);
+            if (error instanceof TypeError || error.message.includes('Failed to fetch')) {
+                throw new Error(`Network error detected. Your login may have been successful, but the server did not respond correctly. Please check your account status before trying again.`);
+            }
             throw error; // Re-throw to let calling code handle it
         }
     }
@@ -65,6 +68,9 @@ export default class AuthApi {
 
         } catch (error) {
             console.error('Registration error:', error);
+            if (error instanceof TypeError || error.message.includes('Failed to fetch')) {
+                throw new Error(`Network error detected. Your account may have been created, but the server did not respond correctly. Please try logging in.`);
+            }
             throw error; // Re-throw to let calling code handle it
         }
     }
